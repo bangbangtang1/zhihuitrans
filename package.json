@@ -1,0 +1,31 @@
+{
+  "name": "zhihuitrans",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node node_modules/react-native/local-cli/cli.js start",
+    "test": "jest"
+  },
+  "dependencies": {
+    "react": "16.2.0",
+    "react-native": "0.52.2",
+    "react-native-baidumap-sdk": "^0.5.4",
+    "react-native-svg": "^5.5.1",
+    "antd-mobile": "^2.1.4",
+    "axios": "^0.17.1",
+    "react-navigation": "^1.0.3"
+  },
+  "devDependencies": {
+    "babel-eslint": "^8.0.3",
+    "babel-jest": "22.4.3",
+    "babel-preset-react-native": "4.0.0",
+    "babel-plugin-import": "^1.6.3",
+    "eslint": "^4.12.1",
+    "jest": "22.4.3",
+    "eslint-plugin-react": "^7.5.1",
+    "react-test-renderer": "16.2.0"
+  },
+  "jest": {
+    "preset": "react-native"
+  }
+}

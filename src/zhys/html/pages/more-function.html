@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="../css/mui.min.css" />
+		<link rel="stylesheet" type="text/css" href="../css/app.css" />
+
+	</head>
+
+	<body>
+		<header class="mui-bar mui-bar-nav">
+			<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+			<h1 class="mui-title"></h1>
+		</header>
+		<div class="mui-content">
+			<ul class="mui-table-view mui-table-view-chevron">
+				<li class="mui-table-view-cell">
+					<a class="mui-navigate-right" href="newest-alarm_main.html" type="split-page">最新报警</a>
+				</li>
+				<li class="mui-table-view-cell">
+					<a class="mui-navigate-right" href="device-list_main.html" type="split-page">设备管理</a>
+				</li>
+				<li class="mui-table-view-cell">
+					<a class="mui-navigate-right" href="fence-list_main.html" type="split-page">围栏管理</a>
+				</li>
+			</ul>
+			<ul class="mui-table-view mui-table-view-chevron" style="margin-top: 20px;">
+				<li class="mui-table-view-cell">
+					<a class="mui-navigate-right" href="#">产品咨询</a>
+				</li>
+				<li class="mui-table-view-cell">
+					<a class="mui-navigate-right" href="aboutus.html">关于我们</a>
+				</li>
+				<li class="mui-table-view-cell">
+					<a class="mui-navigate-right" href="feedback.html">意见反馈</a>
+				</li>
+				<li class="mui-table-view-cell">
+					<a href="#">
+						软件版本
+						<label class="lblRight" id="lbl-version"></label>
+					</a>
+
+				</li>
+			</ul>
+			<ul class="mui-table-view mui-table-view-chevron" style="margin-top: 20px;">
+				<li class="mui-table-view-cell">
+					<a class="mui-navigate-right" href="set.html">相关设置</a>
+				</li>
+			</ul>
+			<ul class="mui-table-view" style="margin-top: 25px;">
+				<li class="mui-table-view-cell">
+					<a style="text-align: center;color: #FF3B30;" href="#">
+						退出登录
+					</a>
+				</li>
+			</ul>
+		</div>
+		<script src="../js/mui.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="../js/app.js" type="text/javascript" charset="utf-8"></script>
+		<script type="text/javascript">
+			(function($, doc, win) {
+				$.init();
+
+				function preload() {
+					mui.preload({
+						url: 'newest-alarm_main.html',
+						styles: {
+							popGesture: 'hide'
+						}
+					});
+					mui.preload({
+						url: 'device-list_main.html',
+						styles: {
+							popGesture: 'hide'
+						}
+					});
+					mui.preload({
+						url: 'fence-list_main.html',
+						styles: {
+							popGesture: 'hide'
+						}
+					});
+				}
+				$.plusReady(function() {
+//					preload();
+					var curwebview = mui.currentWebview;
+					doc.querySelector('.mui-title').innerText = curwebview.title;
+					var lblVerTag = doc.querySelector('#lbl-version');
+					var wgtVer;
+					plus.runtime.getProperty(plus.runtime.appid, function(inf) {
+						wgtVer = inf.version;
+						lblVerTag.innerText = 'V' + wgtVer;
+					});
+					$('.mui-content .mui-table-view').on('tap', 'li', function() {
+						var aNode = this.firstElementChild;
+						var title = aNode.innerText;
+						var type = aNode.getAttribute('type');
+						if('产品咨询' == title) {
+							plus.device.dial('18611099136', true);
+							return;
+						}
+						if('退出登录' == title) {
+							var btnArray = ['确定', '取消'];
+							mui.confirm('是否确定退出登录？', '智慧运输', btnArray, function(e) {
+								if(e.index == 0) {
+									app.logout(function() {
+										plus.webview.getLaunchWebview().show("pop-in", 200, function() {
+											var allWebview = plus.webview.all();
+											mui.each(allWebview, function(index, wv) {
+												wv.close();
+											});
+										});
+									});
+								}
+							});
+							return;
+						}
+						if(title.indexOf('软件版本')>-1) {
+							if(mui.os.ios) {
+								return;
+							}
+							//App升级功能
+							app.httpReqNoWait('update/zhihuitransApp', function(data) {
+								var newVer = data.newVer;
+								if(wgtVer && newVer && (wgtVer != newVer)) {
+									var btnArray = ['立即升级', '取消'];
+									$.confirm('新版智慧运输客户端功能\n' + data.updateLog, '发现新版本', btnArray, function(e) {
+										if(e.index == 0) {
+											downWgt(data.downloadUrl);
+										}
+									});
+								}else{
+									mui.toast('已是最新版本。');
+								}
+							});
+							return;
+						}
+						var webview_style = {
+							popGesture: "close"
+						};
+						var path = aNode.getAttribute('href');
+						var id = path;
+						$.openWindow({
+							id: id,
+							url: path,
+							styles: webview_style,
+							extras: {
+								title: title
+							},
+							waiting: {
+								autoShow: false
+							}
+						});
+					});
+				});
+			})(mui, document, window);
+			//下载升级包
+			function downWgt(wgtUrl) {
+				plus.nativeUI.showWaiting("正在下载升级包，请耐心等待...");
+				plus.downloader.createDownload(wgtUrl, {
+					filename: "_doc/update/"
+				}, function(d, status) {
+					if(status == 200) {
+						console.log("下载wgt成功：" + d.filename);
+						installWgt(d.filename); // 安装wgt包
+					} else {
+						console.log("下载wgt失败！");
+						plus.nativeUI.alert("下载wgt失败！");
+					}
+					plus.nativeUI.closeWaiting();
+				}).start();
+			}
+			//安装升级包
+			function installWgt(path) {
+				plus.nativeUI.showWaiting("安装升级包...");
+				plus.runtime.install(path, {}, function() {
+					plus.nativeUI.closeWaiting();
+					console.log("安装wgt文件成功！");
+					plus.nativeUI.alert("智慧运输客户端更新完成！", function() {
+						plus.runtime.restart();
+					});
+				}, function(e) {
+					plus.nativeUI.closeWaiting();
+					console.log("安装wgt文件失败[" + e.code + "]：" + e.message);
+					plus.nativeUI.alert("智慧运输客户端更新失败[" + e.code + "]：" + e.message);
+				});
+			}
+		</script>
+	</body>
+
+</html>

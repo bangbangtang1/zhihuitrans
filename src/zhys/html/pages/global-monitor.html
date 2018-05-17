@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+	<title></title>
+	<link rel="stylesheet" type="text/css" href="../css/mui.css" />
+	<link rel="stylesheet" type="text/css" href="../css/app.css" />
+
+	<style>
+		.mui-table-view-cell:after {
+			content: none;
+		}
+
+		.mui-search .mui-placeholder {
+			font-size: 13px;
+		}
+
+		.mui-search .mui-placeholder .mui-icon {
+			font-size: 17px;
+		}
+	</style>
+
+</head>
+
+<body style='width:100%; height:100%;' >
+	<div id="allmap" style="width: 100%;height:100%;position: absolute;left:0; top:0; right:0; bottom:0;"></div>
+	<div class="mui-input-row mui-search " id="div_search" style="position: absolute;top: 10px;right:10px;width: 200px; height:40px;">
+		<input type="search" class="mui-input-clear" placeholder="设备号/车架号/车牌号" style="background: #fff;" id="search">
+	</div>
+
+	<label style="position: absolute;left: 10px;font-size: 15px;color: #C0C0C0;" id="refreshSecs"></label>
+
+	<script src="../js/mui.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="../js/app.js" type="text/javascript" charset="utf-8"></script>
+	<script src="https://api.map.baidu.com/api?v=3.0&ak=cLOsGZ8XMPjnHtcBL8ZBMR10" type="text/javascript"></script>
+	<script src="../js/ZMap.js" type="text/javascript" charset="utf-8"></script>
+	<script src="../js/imap.baidu.tools.markerclusterer.js" type="text/javascript" charset="utf-8"></script>
+	<script src="../js/TextIconOverlay.js" type="text/javascript" charset="utf-8"></script>
+	<script src="../js/MarkerClusterer.js" type="text/javascript" charset="utf-8"></script>
+	<script src="../js/globalmonitor.js" type="text/javascript" charset="utf-8"></script>
+
+	<script type="text/javascript">
+
+		document.addEventListener('message', function (e) {
+			var json = JSON.parse(e.data);
+			switch (json.callBackId) {
+				case 'monitorList':
+					(function (data) {
+						anotation(data);
+					})(json.data)
+					break;
+				case 'devDetail':
+					(function (d, p2) {
+						var opts = {
+							width: 220,
+							offset: new BMap.Size(0, 0)
+						};
+						posData = d;
+						var htmlinfo = GGenerateWinowInfoHTML(d);
+						var infoWindow = new BMap.InfoWindow(htmlinfo, opts);
+						// alert(JSON.stringify());
+						// ZMap.mapObj.openInfoWindow(infoWindow, p2.point);
+
+						ZMap.mapObj.openInfoWindow(infoWindow, new BMap.Point(p2.point.lng, p2.point.lat));
+					})(json.data, json.params2)
+					break;
+				case 'posDevDataQuery':
+					(function (data) {
+						refreshPoint(data);
+					})(json.data)
+					break;
+			}
+		});
+		(function ($, doc, win) {
+			// alert('1');
+			$.init();
+			var moreTag = doc.querySelector('.mui-icon-more.mui-pull-right');
+			var searchTag = doc.querySelector('#search');
+			var titleTag = doc.querySelector('.mui-title');
+			setTimeout(function () {
+				// plus.nativeUI.closeWaiting();
+				// var wv = plus.webview.currentWebview();
+				// titleTag.innerText = wv.title;
+				getFreshTime = app.getFreshTime().second;
+				if (!getFreshTime) {
+					getFreshTime = 30;
+				}
+				refreshTime = getFreshTime;
+				// alert('mapinit前');
+				mapinit(function () {
+					countdownTime();
+					// alert('mapinit中');
+					try {
+						// window.postMessage(JSON.stringify({
+						// 	url: "track/posDevDataQuery.action", callBackId: 'monitorList', params: {
+						// 		// devNo: data.devNo
+						// 	}, params2: {
+						// 		point: ''
+						// 	}
+						// }));
+						// window.postMessage(JSON.stringify({ url: "track/posDevDataQuery.action", callBackId: 'monitorList', params: {} }));
+					} catch (error) {
+						// alert(error.message);
+					}
+					// alert('mapinit后');
+
+				});
+				// alert('mapinit后');
+				searchTag.addEventListener('change', function () {
+					var searchValue = this.value;
+					doSearch(searchValue);
+				});
+			}, 10);
+		})(mui, document, window);
+
+		function doSearch(value) {
+			var m = document.querySelector('#div_search');
+			m.classList.remove('mui-active');
+			var s = document.querySelector('#search');
+			s.value = '';
+			s.blur();
+
+			if (value) {
+				var curData;
+				for (var i = 0; i < truckData.length; i++) {
+					var dpos = truckData[i].devNo.indexOf(value);
+					var vin = truckData[i].vin.indexOf(value);
+					var vpos = truckData[i].vehicleNo.indexOf(value);
+					if (dpos > -1 || vpos > -1 || vin > -1) {
+						curData = truckData[i];
+						break;
+					}
+				}
+				if (curData) {
+					var point = new BMap.Point(curData.longitude, curData.latitude);
+					ZMap.mapObj.centerAndZoom(point, 12);
+					var opts = {
+						width: 220,
+						offset: new BMap.Size(0, 0)
+					};
+					var htmlinfo = GGenerateWinowInfoHTML(curData);
+					var infoWindow = new BMap.InfoWindow(htmlinfo, opts);
+					ZMap.mapObj.openInfoWindow(infoWindow, point);
+				} else {
+					mui.alert('未找到相关设备。');
+				}
+
+			}
+			return false;
+		}
+
+		function rtimemon(devNo) {
+			var path = 'rtimemonitor.html';
+			var id = path;
+			mui.openWindow({
+				url: path,
+				id: id,
+				extras: {
+					devNo: devNo
+				}
+			});
+		}
+
+		function alarm(devNo) {
+			var path = 'alarm-history_main.html';
+			var id = path;
+			mui.openWindow({
+				url: path,
+				id: id,
+				extras: {
+					title: devNo,
+					devNo: devNo
+				}
+			});
+		}
+
+		function playback(params) {
+			var arr = params.split(',');
+			var path = 'trackplayback.html';
+			var id = path;
+			mui.openWindow({
+				url: path,
+				id: id,
+				extras: {
+					devNo: arr[0],
+					vehicleNo: arr[1]
+				}
+			});
+		}
+
+		function device() {
+			var path = 'device-detail.html';
+			var id = path;
+			mui.openWindow({
+				id: id,
+				url: path,
+				extras: {
+					device: posData
+				}
+			});
+		}
+
+		//下载升级包
+		function downWgt(wgtUrl) {
+			plus.nativeUI.showWaiting("正在下载升级包，请耐心等待...");
+			plus.downloader.createDownload(wgtUrl, {
+				filename: "_doc/update/"
+			}, function (d, status) {
+				if (status == 200) {
+					console.log("下载wgt成功：" + d.filename);
+					installWgt(d.filename); // 安装wgt包
+				} else {
+					console.log("下载wgt失败！");
+					plus.nativeUI.alert("下载wgt失败！");
+				}
+				plus.nativeUI.closeWaiting();
+			}).start();
+		}
+		//安装升级包
+		function installWgt(path) {
+			plus.nativeUI.showWaiting("安装升级包...");
+			plus.runtime.install(path, {}, function () {
+				plus.nativeUI.closeWaiting();
+				console.log("安装wgt文件成功！");
+				plus.nativeUI.alert("智慧运输客户端更新完成！", function () {
+					plus.runtime.restart();
+				});
+			}, function (e) {
+				plus.nativeUI.closeWaiting();
+				console.log("安装wgt文件失败[" + e.code + "]：" + e.message);
+				plus.nativeUI.alert("智慧运输客户端更新失败[" + e.code + "]：" + e.message);
+			});
+		}
+	</script>
+</body>
+
+</html>

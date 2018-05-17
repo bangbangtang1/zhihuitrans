@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="../css/mui.css" />
+		<link rel="stylesheet" type="text/css" href="../css/app.css" />
+		<link rel="stylesheet" type="text/css" href="../css/flightindicators.css" />
+
+		<style type="text/css">
+			.tooltip {
+				font-size: 15px;
+				font-weight: bold;
+				color: #0062CC;
+			}
+			
+			.bgcolor_blue {
+				background-color: #5DD9A1 !important;
+			}
+			
+			.bgcolor_yellow {
+				background-color: #F0AD4E !important;
+			}
+			
+			.fontcolor {
+				color: #FFFFFF;
+			}
+		</style>
+	</head>
+
+	<body>
+		<header class="mui-bar mui-bar-nav">
+			<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+			<a class="mui-icon mui-icon-paperclip mui-pull-right" style="color: #FFFFFF;" id="add-fence"></a>
+			<h1 class="mui-title"></h1>
+		</header>
+		<div class="mui-content">
+
+		</div>
+		<script src="../js/mui.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="../js/app.js" type="text/javascript" charset="utf-8"></script>
+		<script src="../js/jquery.flightindicators.js" type="text/javascript" charset="utf-8"></script>
+
+		<script type="text/javascript">
+			var device;
+			(function($, doc, win) {
+				$.init();
+				var contentTag = doc.querySelector('.mui-content');
+				var titleTag = doc.querySelector('.mui-title');
+
+				$.plusReady(function() {
+					var wv = mui.currentWebview;
+					device = wv.device;
+					titleTag.innerText = '设备号：' + device.devNo;
+					contentTag.innerHTML = '';
+					var ulTag = doc.createElement('ul');
+					ulTag.className = 'mui-table-view';
+					ulTag.style.height = "280px";
+					ulTag.style.backgroundColor = '#172C41';
+					var liTag = doc.createElement('li');
+					liTag.className = 'mui-table-view-cell';
+					liTag.style.position = 'relative';
+					liTag.style.textAlign = 'center';
+
+					var vehicleNo = device.vehicleNo;
+					if(!vehicleNo) {
+						vehicleNo = '未设置车牌号';
+					}
+					liTag.innerHTML = '<p id="airspeed"></p>\
+										<p style="position: absolute;bottom:65px;left: 50%;margin-left:-50px;">\
+											<label style="color: #FF5053;" id="line-state">' + device.strStatus + '</label><br />\
+											<label style="color:#FFF;width:80px;">' + vehicleNo + '</label><br/>\
+										</p>';
+					ulTag.appendChild(liTag);
+					contentTag.appendChild(ulTag);
+
+					var rotateSpeed = device.rotateSpeed;
+					var carBattery = device.carBattery;
+					var leftOil = device.leftOil;
+					var coolantTemp = device.coolantTemp;
+					var carSpeed = device.carSpeed;
+					var odo=device.strOdo;
+					if(!carSpeed) {
+						carSpeed = 0;
+					}else{
+						carSpeed = parseInt(carSpeed);
+					}
+					if(!rotateSpeed) {
+						rotateSpeed = 0;
+					}else{
+						rotateSpeed=parseInt(rotateSpeed);
+					}
+					if(!carBattery) {
+						carBattery = 0;
+					}else{
+						carBattery=parseInt(carBattery);
+					}
+					if(!leftOil) {
+						leftOil = 0;
+					}else{
+						leftOil=parseInt(leftOil);
+					}
+					if(!coolantTemp) {
+						coolantTemp = 0;
+					}else{
+						coolantTemp=parseInt(coolantTemp);
+					}
+					if(!odo){
+						odo=0;
+					}else{
+						odo=parseInt(odo);
+					}
+					ulTag = doc.createElement('ul');
+					ulTag.className = 'mui-table-view mui-grid-view mui-grid-9';
+
+					ulTag.innerHTML = '<li class="mui-table-view-cell mui-media mui-col-xs-4 mui-col-sm-4 bgcolor_yellow"><a>\
+							                    <span class="fontcolor">车速<br/>' + carSpeed + 'KM/H</span></a></li>\
+							            <li class="mui-table-view-cell mui-media mui-col-xs-4 mui-col-sm-4 bgcolor_yellow"><a>\
+							                    <span class="fontcolor">转速<br/>' + rotateSpeed + 'RPM</span></a></li>\
+							            <li class="mui-table-view-cell mui-media mui-col-xs-4 mui-col-sm-4 bgcolor_yellow"><a>\
+							                    <span class="fontcolor">电压<br/>' + carBattery + 'V</span></a></li>\
+							            <li class="mui-table-view-cell mui-media mui-col-xs-4 mui-col-sm-4 bgcolor_blue"><a>\
+							                    <span class="fontcolor">油量<br/>' + leftOil + 'L</span></a></li>\
+							            <li class="mui-table-view-cell mui-media mui-col-xs-4 mui-col-sm-4 bgcolor_blue"><a>\
+							                    <span class="fontcolor">水温<br/>' + coolantTemp + '℃</span></a></li>\
+							            <li class="mui-table-view-cell mui-media mui-col-xs-4 mui-col-sm-4 bgcolor_blue"><a>\
+							                    <span class="fontcolor">里程<br/>' + odo + 'KM</span></a></li>';
+					contentTag.appendChild(ulTag);
+
+					var airspeed = $.flightIndicator('#airspeed', 'airspeed', {
+						showBox: false
+					});
+					airspeed.setAirSpeed(parseInt(carSpeed) * 0.9);
+					/**
+					 * 位置服务
+					 */
+					ulTag = doc.createElement('ul');
+					contentTag.appendChild(ulTag);
+					ulTag.className = 'mui-table-view';
+					liTag = doc.createElement('li');
+					liTag.className = 'mui-table-view-cell mui-media';
+					liTag.innerHTML = '<a class="mui-navigate-right">\
+						<img class="mui-media-object mui-pull-left" src="../images/icon_pos.png">\
+						<div class="mui-media-body">\
+							位置服务\
+							<p class="mui-ellipsis">' + device.addr + '</p>\
+						</div>\
+					</a>';
+					ulTag.appendChild(liTag);
+					liTag.addEventListener('tap', function() {
+						var path = 'rtimemonitor.html';
+						var id = path;
+						mui.openWindow({
+							url: path,
+							id: id,
+							extras: {
+								devNo: device.devNo
+							}
+						});
+					});
+
+					/**
+					 * 轨迹回放
+					 */
+					liTag = doc.createElement('li');
+					liTag.className = 'mui-table-view-cell mui-media';
+					liTag.innerHTML = '<a class="mui-navigate-right">\
+						<img class="mui-media-object mui-pull-left" src="../images/icon_track.png">\
+						<div class="mui-media-body">\
+							轨迹回放\
+							<p class="mui-ellipsis">按时间段回放行车轨迹</p>\
+						</div>\
+					</a>';
+					ulTag.appendChild(liTag);
+					liTag.addEventListener('tap', function() {
+
+						var path = 'trackplayback.html';
+						var id = path;
+						mui.openWindow({
+							url: path,
+							id: id,
+							extras: {
+								devNo: device.devNo,
+								vehicleNo: device.vehicleNo
+							}
+						});
+					});
+					/**
+					 * 报警历史
+					 */
+					liTag = doc.createElement('li');
+					liTag.className = 'mui-table-view-cell mui-media';
+					liTag.innerHTML = '<a class="mui-navigate-right">\
+						<img class="mui-media-object mui-pull-left" src="../images/icon_alarm.png">\
+						<div class="mui-media-body">\
+							报警历史\
+							<p class="mui-ellipsis">该车辆OBD报警的历史信息</p>\
+						</div>\
+					</a>';
+					ulTag.appendChild(liTag);
+					liTag.addEventListener('tap', function() {
+						var path = 'alarm-history_main.html';
+						var id = path;
+						mui.openWindow({
+							url: path,
+							id: id,
+							extras: {
+								title: device.devNo,
+								devNo: device.devNo
+							}
+						});
+					});
+
+					doc.querySelector('.mui-icon-paperclip.mui-pull-right').addEventListener('tap', function() {
+						var path = 'bind-unbind.html';
+						var id = path;
+						mui.openWindow({
+							url: path,
+							id: id,
+							extras: {
+								device:device
+							}
+						});
+					});
+				});
+			})(mui, document, window);
+		</script>
+	</body>
+
+</html>

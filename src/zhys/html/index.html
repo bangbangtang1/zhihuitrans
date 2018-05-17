@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<link href="css/mui.css" rel="stylesheet" />
+		<link rel="stylesheet" type="text/css" href="css/app.css" />
+		<style>
+			.link-area {
+				display: block;
+				margin-top: 25px;
+				text-align: right;
+			}
+			
+			.link-area a {
+				color: #0062CC;
+				font-size: 16px;
+			}
+		</style>
+
+	</head>
+
+	<body>
+		<header class="mui-bar mui-bar-nav">
+			<h1 class="mui-title">智慧运输</h1>
+		</header>
+		<div class="mui-content">
+			<div class="mui-content-padded">
+				<form class="mui-input-group">
+					<div class="mui-input-row">
+						<input type="text" class="mui-input-clear" placeholder="请输入账号">
+					</div>
+					<div class="mui-input-row">
+						<input type="password" class="mui-input-clear" placeholder="请输入密码">
+					</div>
+					<ul class="mui-table-view mui-table-view-chevron">
+						<li class="mui-table-view-cell">
+							自动登录
+							<div id="autoLogin" class="mui-switch mui-active">
+								<div class="mui-switch-handle"></div>
+							</div>
+						</li>
+					</ul>
+				</form>
+				<div class="mui-content-padded">
+					<button id='login-btn' class="mui-btn mui-btn-primary mui-btn-block ">登录</button>
+					<!--<div class="link-area">
+						<a id='demo'>产品演示</a>
+					</div>-->
+				</div>
+			</div>
+		</div>
+		<script src="js/mui.min.js"></script>
+		<script src="js/app.js" type="text/javascript" charset="utf-8"></script>
+		<script type="text/javascript">
+			(function($, doc) {
+				$.init();
+				var loginTag = doc.querySelector('#login-btn');
+				var autoLoginTag = doc.querySelector('#autoLogin');
+				var inputTags = doc.getElementsByTagName('input');
+				$.plusReady(function() {
+//					var devNo = plus.device.uuid;
+//					if(devNo&&devNo.indexOf('-')>-1){
+//						devNo=devNo.replace(new RegExp(/-/g),'')
+//					}
+//					plus.geolocation.watchPosition(function(p) {
+//						console.log(p.coordsType);
+//						var cursor = p.coords.heading;
+//						if(!cursor || 'NaN' == cursor) {
+//							cursor = 0;
+//						}
+//						var gpsSpeed = p.coords.speed;
+//						if(!gpsSpeed){
+//							gpsSpeed = 0;
+//						}
+//						var time = new Date().Format("yyMMddhhmmss");  
+//						var params = {
+//							gps: p.coords.longitude + ',' + p.coords.latitude,
+//							gpsSpeed: gpsSpeed,
+//							gpsDirect: cursor,
+//							realGps: 'yes',
+//							deviceNo: devNo,
+//							time: time
+//						};
+//						//01AF37D8B84C4E49B3C0D1A94E44B123
+//						$.ajax({
+//							type: "get",
+//							data: params,
+//							url: 'http://101.201.110.146:38081/gis',
+//							timeout: 5000,
+//							success: function(data) {
+//								console.log(JSON.stringify(params));
+//							},
+//							error: function(xhr, type, errorThrown) {
+//								console.log(type);
+//							}
+//						});
+//					}, function(e) {
+//						console.log("Geolocation error: " + e.message);
+//					}, {
+//						provider: 'system',
+//						geocode: false
+//					});
+
+					//登录事件
+					loginTag.addEventListener('tap', function(e) {
+						var loginname = inputTags[0].value;
+						var pwd = inputTags[1].value;
+						if(app.isEmpty(loginname)) {
+							$.toast('请输入账号');
+							return;
+						}
+						if(app.isEmpty(pwd)) {
+							$.toast('请输入密码');
+							return;
+						}
+						var userInfo = {
+							loginname: loginname,
+							pwd: pwd,
+							autoLogin: autoLoginTag.classList.contains('mui-active')
+						};
+						app.httpReqWithParams(userInfo, '/login', function(data) {
+							var retcode = data.retcode;
+							var retmsg = data.retmsg;
+							if('0' != retcode) {
+								$.alert(retmsg);
+								return;
+							}
+							userInfo.truename = data.t.truename;
+							app.saveUser(userInfo);
+							var path = 'main.html';
+							var id = path;
+							$.openWindow({
+								url: path,
+								id: id,
+								show: {
+									aniShow: 'none'
+								},
+								waiting: {
+									autoShow: false
+								}
+							});
+						});
+					});
+					//竖屏
+					plus.screen.lockOrientation("portrait-primary");
+					//导航页是否已经显示过
+					var hasShowGuide = {}; //plus.storage.getItem('lauchFlag');
+					if(hasShowGuide) {
+						plus.navigator.setFullscreen(false);
+						var userInfo = app.getUser();
+						if(userInfo && userInfo.autoLogin) {
+							app.httpReqWithParams(userInfo, '/login', function(data) {
+								var retcode = data.retcode;
+								var retmsg = data.retmsg;
+								if('0' != retcode) {
+									plus.navigator.closeSplashscreen();
+									app.logout();
+									$.alert(retmsg);
+									return;
+								}
+								var path = 'main.html';
+								var id = path;
+								$.openWindow({
+									url: path,
+									id: id,
+									show: {
+										aniShow: 'none'
+									},
+									waiting: {
+										autoShow: false
+									}
+								});
+							});
+							return;
+						}
+						plus.navigator.closeSplashscreen();
+					} else {
+						$.openWindow({
+							id: 'guide',
+							url: 'guide.html',
+							show: {
+								aniShow: 'none'
+							},
+							waiting: {
+								autoShow: false
+							}
+						});
+					}
+				});
+				$.back = function() {
+					plus.webview.close($.currentWebview);
+				};
+			})(mui, document);
+
+			Date.prototype.Format = function(fmt) { //author: meizz 
+				var o = {
+					"M+": this.getMonth() + 1, //月份 
+					"d+": this.getDate(), //日 
+					"h+": this.getHours(), //小时 
+					"m+": this.getMinutes(), //分 
+					"s+": this.getSeconds(), //秒 
+					"q+": Math.floor((this.getMonth() + 3) / 3), //季度 
+					"S": this.getMilliseconds() //毫秒 
+				};
+				if(/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+				for(var k in o)
+					if(new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+				return fmt;
+			}
+		</script>
+	</body>
+
+</html>

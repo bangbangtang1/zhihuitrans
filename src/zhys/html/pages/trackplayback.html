@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+	<title></title>
+	<link rel="stylesheet" type="text/css" href="../css/mui.css" />
+	<link rel="stylesheet" type="text/css" href="../css/app.css" />
+	<link rel="stylesheet" type="text/css" href="../css/mui.picker.min.css" />
+
+	<style>
+		.mui-input-row .mui-btn {
+			width: 65%;
+			padding: 10px 10px 10px 0px;
+			font-size: 12px;
+		}
+
+		.mui-input-row label {
+			padding: 10px 10px 10px 0px;
+			line-height: 1.65;
+		}
+
+		input[type='button'],
+		input[type='submit'],
+		input[type='reset'],
+		button,
+		.mui-btn {
+			border: 0px solid #ccc;
+			text-align: left;
+		}
+
+		.mui-input-group .mui-input-row:after {
+			left: -10px;
+		}
+	</style>
+</head>
+
+<body>
+	<!-- <header class="mui-bar mui-bar-nav">
+			<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+			<h1 class="mui-title">轨迹回放</h1>
+		</header> -->
+
+	<div id="allmap" style="width: 100%;height:100%;position: absolute;"></div>
+	<img id="imstBtn" onclick="conti()" src="../images/st.png" style="position: absolute;width: 64px; bottom: 10px;left: 50%;margin-left: -32px;display: none;"
+	/>
+	<img id="impeBtn" onclick="pause()" src="../images/pe.png" style="position: absolute;width: 64px; bottom: 10px;left: 50%;margin-left: -32px;display: none;"
+	/>
+
+	<div class="mui-card" style="position: absolute;right: 5px;top:80px;">
+		<ul class="mui-table-view">
+			<li class="mui-table-view-cell mui-collapse mui-active" style="font-size: 12px;padding: 0px;" id="licollapse">
+				<a class="mui-navigate-right" href="#" style="font-size: 12px;margin: 0px;padding: 10px 10px;">轨迹回放</a>
+				<div class="mui-collapse-content" style="margin: 0px;padding: 0px 10px;">
+					<form class="mui-input-group" style="margin: 0px;">
+						<div class="mui-input-row">
+							<label>车牌号：</label>
+							<input type="text" id="vehicleNo" readonly="readonly" style="font-size: 12px;">
+						</div>
+						<div class="mui-input-row">
+							<label>时间范围：</label>
+							<select class="mui-btn mui-btn-block" id="timerange" value="6">
+								<option value="6">6小时内</option>
+								<option value="12">12小时内</option>
+								<option value="24">24小时内</option>
+								<option value="48">2天内</option>
+								<option value="72">3天内</option>
+								<option value="0">自定义</option>
+							</select>
+						</div>
+						<div class="mui-input-row" id="sttr" style="display: none;">
+							<label>开始时间：</label>
+							<button id='stdate' data-options='{}' class="btn mui-btn mui-btn-block">选择日期 ...</button>
+						</div>
+						<div class="mui-input-row" id="entr" hidden="hidden">
+							<label>结束时间：</label>
+							<button id='endate' data-options='{}' class="btn mui-btn mui-btn-block">选择日期 ...</button>
+						</div>
+
+						<div class="mui-input-row">
+							<label>播放频率:</label>
+							<select class="mui-btn mui-btn-block" id="frequency">
+								<option value="50">最快(50ms)</option>
+								<option value="100">快速(100ms)</option>
+								<option value="200" selected>正常(200ms)</option>
+								<option value="1000">慢速(1000ms)</option>
+							</select>
+						</div>
+						<div class="mui-button-row">
+							<button class="mui-btn mui-btn-primary" type="button" id="runBtn" onclick="start()">开始</button>&nbsp;&nbsp;
+							<button class="mui-btn mui-btn-primary" type="button" id="stopBtn" onclick="stop()">停止</button>
+						</div>
+					</form>
+				</div>
+			</li>
+		</ul>
+	</div>
+
+	<script src="../js/mui.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="../js/mui.picker.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="../js/app.js" type="text/javascript" charset="utf-8"></script>
+	<script src="https://api.map.baidu.com/api?v=2.0&ak=cLOsGZ8XMPjnHtcBL8ZBMR10" type="text/javascript"></script>
+	<script src="../js/ZMap.js" type="text/javascript" charset="utf-8"></script>
+	<script src="../js/trackplayback.js" type="text/javascript" charset="utf-8"></script>
+
+	<script type="text/javascript">
+		var trackDeviceNo;
+		var frequency = 200;
+		var timer;
+		var carmarker;
+		var carlabel;
+		var timerange;
+		var datatype = 1;
+		var stdateObj;
+		var endateObj;
+		var curTrackData;
+		(function ($, doc, win) {
+			$.init();
+			setTimeout(function () {
+				// alert('window.params_devNo'+JSON.stringify(window.webViewParams));
+				trackDeviceNo = window.webViewParams.devNo;
+				var vehicleNo = window.webViewParams.vehicleNo;
+				if (!vehicleNo) {
+					vehicleNo = '暂未设置';
+				}
+				doc.querySelector('#vehicleNo').value = vehicleNo;
+				getCurPoint();
+			}, 100);
+			var sttr = doc.querySelector('#sttr');
+			var entr = doc.querySelector('#entr');
+			stdateObj = doc.querySelector('#stdate');
+			endateObj = doc.querySelector('#endate');
+			var frequencyObj = doc.querySelector('#frequency');
+			var timerangeObj = doc.querySelector('#timerange');
+			timerangeObj.addEventListener('change', function (e) {
+				var range = this.value;
+				if (range == 0) {
+					datatype = 2;
+					sttr.style.display = 'block';
+					entr.style.display = 'block';
+					var date = new Date();
+					var shortDate = getStrShortDate(date);
+					stdateObj.innerText = shortDate;
+					stdateObj.setAttribute('data-options', getPickerOptions(date, shortDate));
+					var longDate = getStrLongDate(date);
+					endateObj.innerText = longDate;
+					endateObj.setAttribute('data-options', getPickerOptions(date, longDate));
+				} else {
+					datatype = 1;
+					sttr.style.display = 'none';
+					entr.style.display = 'none';
+				}
+			});
+			frequencyObj.addEventListener('change', function (e) {
+				frequency = this.value;
+			});
+			stdateObj.addEventListener('tap', function () {
+				var optionsJson = this.getAttribute('data-options') || '{}';
+				var options = JSON.parse(optionsJson);
+				var picker = new $.DtPicker(options);
+				picker.show(function (rs) {
+					stdateObj.innerText = rs.text;
+					onStDateSelect(rs);
+					picker.dispose();
+				});
+			});
+			endateObj.addEventListener('tap', function () {
+				var optionsJson = this.getAttribute('data-options') || '{}';
+				var options = JSON.parse(optionsJson);
+				var picker = new $.DtPicker(options);
+				picker.show(function (rs) {
+					endateObj.innerText = rs.text;
+					onEnDateSelect(rs);
+					picker.dispose();
+				});
+			});
+		})(mui, document, window);
+		document.addEventListener('message', function (e) {
+			var json = JSON.parse(e.data);
+			switch (json.callBackId) {
+				case 'realTimeTrack':
+					mapinit('allmap', 13, json.data);
+					break;
+				case 'backReplay':
+					(function (json) {
+						if (json != null && json.length > 0) {
+							json.vehicleNo = '';
+							document.querySelector('#impeBtn').style.display = 'block';
+							document.querySelector('#imstBtn').style.display = 'none';
+
+							createMarker(json);
+							curpalyindex = 0;
+							setTimeout(function () {
+								run();
+							}, 1000);
+						} else {
+							mui('#runBtn')[0].removeAttribute('disabled');
+							mui('#stopBtn')[0].removeAttribute('disabled');
+							mui.toast('该时间段内没有轨迹记录');
+						}
+					})(json.data)
+					break;
+			}
+		});
+		function getCurPoint() {
+
+			var params = {
+				devNo: trackDeviceNo
+			};
+			// alert('params:'+JSON.stringify(trackDeviceNo))
+			window.postMessage(JSON.stringify({ url: "track/realTimeTrack.action", callBackId: 'realTimeTrack', params: params }));
+		}
+
+		function onStDateSelect(date) {
+			var st = new Date(date.value);
+			var en = new Date(endateObj.innerText);
+			var diff = dateDiff(st, en);
+			if (diff > 90) {
+				st = new Date(st.valueOf() + 6 * 24 * 60 * 60 * 1000);
+				var longDate = getStrLongDate(st);
+				endateObj.innerText = longDate;
+				endateObj.setAttribute('data-options', getPickerOptions(st, longDate));
+			}
+		}
+
+		function onEnDateSelect(date) {
+			var en = new Date(date.value);
+			var st = new Date(stdateObj.innerText);
+			var diff = dateDiff(st, en);
+			if (diff > 90) {
+				en = new Date(en.valueOf() - 6 * 24 * 60 * 60 * 1000);
+				var longDate = getStrLongDate(en);
+				stdateObj.innerText = longDate;
+				stdateObj.setAttribute('data-options', getPickerOptions(en, longDate));
+			}
+		}
+
+		function dateDiff(date1, date2) {
+			return parseInt((Math.abs(date1.getTime() - date2.getTime())) / (24 * 60 * 60 * 1000));
+		}
+
+		function getPickerOptions(date, value) {
+			var beginYear = date.getFullYear() - 1;
+			var endYear = date.getFullYear() + 1;
+			var options = '{"value":"' + value + '","beginYear":' + beginYear + ',"endYear":' + endYear + '}';
+			return options;
+		}
+
+		function getStrShortDate(curr_time) {
+			var strDate = curr_time.getFullYear() + "-";
+			var month = curr_time.getMonth() + 1;
+			strDate += dateFill(month) + "-";
+			var day = curr_time.getDate();
+			strDate += dateFill(day);
+			strDate += " 00:00";
+			return strDate;
+		}
+
+		function getStrLongDate(curr_time) {
+			var strDate = curr_time.getFullYear() + "-";
+			var month = curr_time.getMonth() + 1;
+			strDate += dateFill(month) + "-";
+			var day = curr_time.getDate();
+			strDate += dateFill(day) + " ";
+			var hours = curr_time.getHours();
+			strDate += dateFill(hours) + ":";
+			strDate += dateFill(curr_time.getMinutes());
+			return strDate;
+		}
+
+		function dateFill(data) {
+			var str = '';
+			if (data < 10) {
+				str = "0" + data;
+			} else {
+				str = data;
+			}
+			return str;
+		}
+
+		function getTrackData() {
+			if (!trackDeviceNo) {
+				return;
+			}
+			if (timer) {
+				clearInterval(timer);
+			}
+			if (datatype == 2) {
+				var stdate = stdateObj.innerText;
+				var endate = endateObj.innerText;
+				if (!stdate || !endate) {
+					mui.toast('请选择日期');
+					return;
+				}
+			}
+			mui('#runBtn')[0].setAttribute('disabled', 'disabled');
+			mui('#stopBtn')[0].removeAttribute('disabled');
+			var val = mui('#timerange')[0].value;
+			timerange = val;
+			var m = document.querySelector('#licollapse').classList;
+			m.remove('mui-active');
+			getAllPoints();
+
+		}
+
+		function getAllPoints() {
+			if (!trackDeviceNo) {
+				return;
+			}
+			initPage();
+			var stDate = '';
+			var enDate = '';
+			if (datatype == 2) {
+				stDate = stdateObj.innerText;
+				if (stDate) {
+					stDate += ':00';
+				}
+				enDate = endateObj.innerText;
+				if (enDate) {
+					enDate += ':00';
+				}
+			}
+			var params = {
+				datatype: datatype,
+				devNo: trackDeviceNo,
+				stDate: stDate,
+				enDate: enDate,
+				timerange: timerange
+			};
+			window.postMessage(JSON.stringify({ url: "track/backReplay.action", callBackId: 'backReplay', params: params }));
+
+		}
+
+		function run() {
+			timer = setInterval(function () {
+				updateMarker();
+			}, frequency);
+		}
+
+		function conti() {
+			document.querySelector('#impeBtn').style.display = 'block';
+			document.querySelector('#imstBtn').style.display = 'none';
+			run();
+		}
+
+		function updateMarker() {
+			var point = tracklogLatLngs[curpalyindex];
+			curTrackData = tracklogDatas[curpalyindex];
+
+			if (curpalyindex == 0) {
+				ZMap.mapObj.centerAndZoom(point, 13);
+			} else {
+				var bounds = ZMap.mapObj.getBounds();
+				if (!bounds.containsPoint(point)) {
+					ZMap.setCenterAndZoom(point, ZMap.mapObj.getZoom());
+				}
+			}
+			carmarker.setPosition(point);
+			carmarker.setRotation(curTrackData.course);
+			curpalyindex++;
+			if (curpalyindex < tracklogLatLngs.length) {
+				// timer = setTimeout("run(" + curpalyindex + ")", frequency);
+			} else {
+				clearInterval(timer);
+				mui('#runBtn')[0].removeAttribute('disabled');
+				mui('#stopBtn')[0].removeAttribute('disabled');
+			}
+
+		}
+
+		function start() {
+			getTrackData();
+		}
+
+		function stop() {
+			curpalyindex = 0;
+			if (timer) {
+				clearInterval(timer);
+			}
+			var m = document.querySelector('#licollapse').classList;
+			m.remove('mui-active');
+			mui('#runBtn')[0].removeAttribute('disabled');
+			mui('#stopBtn')[0].setAttribute('disabled', 'disabled');
+
+			document.querySelector('#impeBtn').style.display = 'none';
+			document.querySelector('#imstBtn').style.display = 'block';
+		}
+
+		function pause() {
+			if (timer) {
+				clearInterval(timer);
+			}
+			document.querySelector('#impeBtn').style.display = 'none';
+			document.querySelector('#imstBtn').style.display = 'block';
+		}
+	</script>
+</body>
+
+</html>

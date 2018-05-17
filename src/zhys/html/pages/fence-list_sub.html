@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+		<link rel="stylesheet" type="text/css" href="../css/mui.min.css">
+		<link rel="stylesheet" type="text/css" href="../css/app.css" />
+	</head>
+
+	<body>
+		<!--下拉刷新容器-->
+		<div id="pullrefresh" class="mui-content mui-scroll-wrapper">
+			<div class="mui-scroll">
+				<!--数据列表-->
+				<ul class="mui-table-view mui-table-view-chevron">
+
+				</ul>
+			</div>
+		</div>
+		<script type="text/javascript" src="../js/mui.min.js"></script>
+		<script type="text/javascript" src="../js/app.js"></script>
+		<script>
+			mui.init({
+				pullRefresh: {
+					container: '#pullrefresh',
+					down: {
+						callback: pulldownRefresh
+					},
+					up: {
+						contentrefresh: '正在加载...',
+						contentnomore:'',
+						callback: pullupRefresh
+					}
+				}
+			});
+			var pageIndex = 1;
+			var table = document.body.querySelector('.mui-table-view');
+			/**
+			 * 下拉刷新具体业务实现
+			 */
+			function pulldownRefresh() {
+				pageIndex = 1;
+				app.httpReqWithParamsNoWait({
+					page: pageIndex,
+					rows:app.regx.items
+				}, 'fence/list.action', function(data) {
+					table.innerHTML = '';
+					if(data && data.length > 0) {
+						mui.each(data, function(i, d) {
+							var liTag = document.createElement('li');
+							liTag.className = 'mui-table-view-cell';
+							liTag.innerHTML = '<a class="mui-navigate-right">' + d.name + '</a>';
+							table.appendChild(liTag);
+							liTag.addEventListener('tap', function() {
+								var path = 'fence-detail.html';
+								var id = path;
+								mui.openWindow({
+									url: path,
+									id: id,
+									extras: {
+										fence: d
+									}
+								});
+							});
+						})
+						pageIndex++;
+					}
+					mui('#pullrefresh').pullRefresh().endPulldownToRefresh(); //refresh completed
+				});
+			}
+
+			/**
+			 * 上拉加载具体业务实现
+			 */
+			function pullupRefresh() {
+				app.httpReqWithParamsNoWait({
+					page: pageIndex,
+					rows:app.regx.items
+				}, 'fence/list.action', function(data) {
+					if(data && data.length > 0) {
+						mui('#pullrefresh').pullRefresh().endPullupToRefresh((data.length < 20)); //参数为true代表没有更多数据了。
+						mui.each(data, function(i, d) {
+							var liTag = document.createElement('li');
+							liTag.className = 'mui-table-view-cell';
+							liTag.innerHTML = '<a class="mui-navigate-right">' + d.name + '</a>';
+							table.appendChild(liTag);
+							liTag.addEventListener('tap', function() {
+								var path = 'fence-detail.html';
+								var id = path;
+								mui.openWindow({
+									url: path,
+									id: id,
+									extras: {
+										fence: d
+									}
+								});
+							});
+						})
+						pageIndex++;
+					}else {
+						mui('#pullrefresh').pullRefresh().endPullupToRefresh(true);
+					}
+				});
+			}
+			if(mui.os.plus) {
+				mui.plusReady(function() {
+					setTimeout(function() {
+						mui('#pullrefresh').pullRefresh().pullupLoading();
+					}, 1000);
+
+				});
+			} else {
+				mui.ready(function() {
+					mui('#pullrefresh').pullRefresh().pullupLoading();
+				});
+			}
+		</script>
+	</body>
+
+</html>

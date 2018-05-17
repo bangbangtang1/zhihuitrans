@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="../css/mui.css" />
+		<link rel="stylesheet" type="text/css" href="../css/app.css" />
+	</head>
+
+	<body>
+		<header class="mui-bar mui-bar-nav">
+			<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+			<h1 class="mui-title"></h1>
+		</header>
+		<div class="mui-content">
+			<ul class="mui-table-view">
+				<li class="mui-table-view-cell mui-media" id="do-unbind">
+					<img class="mui-media-object mui-pull-left" src="../images/icon_unbind.png">
+					<div class="mui-media-body" style="color: #FF0000;">
+						解绑设备
+						<p class='mui-ellipsis'>解除当前绑定设备，释放设备</p>
+					</div>
+
+				</li>
+				<li class="mui-table-view-cell mui-collapse mui-media" id="collapse-tag">
+					<a class="mui-navigate-right">
+						<img class="mui-media-object mui-pull-left" src="../images/icon_bind.png">
+						<div class="mui-media-body">
+							绑定设备
+							<p class='mui-ellipsis'>绑定设备，建立设备与车辆围栏绑定关系</p>
+						</div>
+					</a>
+					<div class="mui-collapse-content">
+						<form class="mui-input-group">
+							<ul class="mui-table-view">
+								<li class="mui-table-view-cell" id="sel-fence">
+									<a class="mui-navigate-right">
+										点击选择围栏
+									</a>
+								</li>
+							</ul>
+							<div class="mui-input-row" style="padding: 10px;">
+								<input type="text" class="mui-input-clear" name="vehicleNo" placeholder="请输入车牌号">
+							</div>
+							<div class="mui-button-row">
+								<button class="mui-btn mui-btn-primary" type="button" id="do-binding">确认</button>
+							</div>
+						</form>
+					</div>
+				</li>
+			</ul>
+		</div>
+		<script src="../js/mui.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="../js/app.js" type="text/javascript" charset="utf-8"></script>
+		<script type="text/javascript">
+			(function($, doc, win) {
+				$.init();
+				var bindTag = doc.querySelector('#do-binding');
+				var unbindTag = doc.querySelector('#do-unbind');
+				var tag = doc.querySelector('#collapse-tag');
+				var selFenceTag = doc.querySelector('#sel-fence');
+				$.plusReady(function() {
+					var wv = mui.currentWebview;
+					var device = wv.device;
+					doc.querySelector('.mui-title').innerText='设备号：'+device.devNo;
+					unbindTag.addEventListener('tap', function() {
+						var vehicleNo = device.vehicleNo;
+						var fenceNo = device.fenceNo;
+						if(!vehicleNo && !fenceNo) {
+							mui.toast('无绑定关系，无须解绑');
+							return;
+						}
+						var btnArray = ['确定', '取消'];
+						mui.confirm('您确定要解除当前设备与车辆的绑定关系吗？', '', btnArray, function(e) {
+							if(e.index == 0) {
+								app.httpReqWithParams({
+									devNo: device.devNo
+								}, 'fence/unbind.action', function(data) {
+									var retcode = data.retcode;
+									mui.toast(data.retmsg);
+									if('0' != retcode) {
+										return;
+									}
+								});
+							}
+						});
+					});
+					bindTag.addEventListener('tap', function() {
+						var inputTags = doc.getElementsByTagName('input');
+						var vehicleNo = inputTags[0].value;
+						var fence = plus.storage.getItem('fence-available-list.html');
+						if(app.isEmpty(vehicleNo) && !fence) {
+							$.toast('请输入车牌号或选择围栏');
+							return;
+						}
+						var params = {
+							devNo: device.devNo,
+							vehicleNo: vehicleNo
+						};
+						if(fence) {
+							params.fenceNo = fence.fenceNo;
+						}
+						app.httpReqWithParams(params, 'fence/bind.action', function(data) {
+							var retcode = data.retcode;
+							mui.toast(data.retmsg);
+							if('0' != retcode) {
+								return;
+							}
+							if(tag.classList.contains('mui-active')) {
+								tag.classList.remove('mui-active');
+							}
+							mui.back();
+						});
+					});
+
+					selFenceTag.addEventListener('tap', function() {
+						var path = 'fence-available-list.html';
+						var id = path;
+						mui.openWindow({
+							url: path,
+							id: id
+						});
+					});
+					win.addEventListener('updateSelFence', function(e) {
+						selFenceTag.firstElementChild.innerText = e.detail.name;
+					});
+				});
+			})(mui, document, window);
+		</script>
+	</body>
+
+</html>

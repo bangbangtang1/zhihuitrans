@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+	<title></title>
+	<link rel="stylesheet" type="text/css" href="../css/mui.css" />
+	<link rel="stylesheet" type="text/css" href="../css/app.css" />
+
+	<style>
+		.mui-table-view-cell:after {
+			content: none;
+		}
+	</style>
+</head>
+
+<body>
+	<!-- <header class="mui-bar mui-bar-nav">
+		<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+		<h1 class="mui-title"></h1>
+	</header> -->
+	<div id="allmap" style="width: 100%;height:100%;position: absolute;"></div>
+
+	<script src="../js/mui.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="../js/app.js" type="text/javascript" charset="utf-8"></script>
+	<script src="http://api.map.baidu.com/api?v=2.0&ak=cLOsGZ8XMPjnHtcBL8ZBMR10" type="text/javascript"></script>
+	<script src="../js/ZMap.js" type="text/javascript" charset="utf-8"></script>
+
+	<script type="text/javascript">
+
+		var fenceNo = null;
+		document.addEventListener('message', function (e) {
+			var json = JSON.parse(e.data);
+			switch (json.callBackId) {
+				case 'showFence':
+					(function (json) {
+						if (json != null) {
+							drawFenceLine(json);
+						} else {
+							mui.toast('该围栏没找到');
+						}
+					})(json.data)
+					break;
+			}
+		});
+		//画圆形围栏
+		function drawFenceLine(data) {
+			var drawType;
+			var point;
+			var styleOptions = {
+				strokeColor: "red",
+				fillColor: "red",
+				strokeWeight: 3,
+				strokeOpacity: 0.8,
+				fillOpacity: 0.2,
+				strokeStyle: 'solid'
+			};
+			if (data.fenceType == 1) {
+				var arrLnglat = data.lnglat.split(',');
+				point = new BMap.Point(arrLnglat[0], arrLnglat[1]);
+				drawType = new BMap.Circle(point, data.radius, styleOptions);
+			} else {
+				var rc1Lnglat = data.rc1Lnglat.split(',');
+				var rc2Lnglat = data.rc2Lnglat.split(',');
+				var rc3Lnglat = data.rc3Lnglat.split(',');
+				var rc4Lnglat = data.rc4Lnglat.split(',');
+				if (parseFloat(rc1Lnglat[0]) > parseFloat(rc2Lnglat[0])) {
+					lat = parseFloat(rc2Lnglat[0]) + (parseFloat(rc1Lnglat[0]) - parseFloat(rc2Lnglat[0])) / 2;
+				} else {
+					lat = parseFloat(rc1Lnglat[0]) + (parseFloat(rc2Lnglat[0]) - parseFloat(rc1Lnglat[0])) / 2;
+				}
+				if (parseFloat(rc2Lnglat[1]) > parseFloat(rc3Lnglat[1])) {
+					lng = parseFloat(rc3Lnglat[1]) + (parseFloat(rc2Lnglat[1]) - parseFloat(rc3Lnglat[1])) / 2;
+				} else {
+					lng = parseFloat(rc2Lnglat[1]) + (parseFloat(rc3Lnglat[1]) - parseFloat(rc2Lnglat[1])) / 2;
+				}
+				point = new BMap.Point(lat, lng);
+				drawType = new BMap.Polygon([
+					new BMap.Point(rc1Lnglat[0], rc1Lnglat[1]),
+					new BMap.Point(rc2Lnglat[0], rc2Lnglat[1]),
+					new BMap.Point(rc3Lnglat[0], rc3Lnglat[1]),
+					new BMap.Point(rc4Lnglat[0], rc4Lnglat[1])
+				], styleOptions);
+			}
+			ZMap.mapObj.addOverlay(drawType);
+			ZMap.mapObj.setCenter(point);
+			var myIcon = new BMap.Icon("../images/hq.png", new BMap.Size(32,
+				32));
+			myIcon.iconAnchor = new BMap.Point(5, 5);
+			var marker = new BMap.Marker(point, {
+				icon: myIcon
+			});
+			ZMap.mapObj.addOverlay(marker);
+			marker.addEventListener('click', function (e) {
+				var opts = {
+					width: 220,
+					height: 170,
+					offset: new BMap.Size(0, 0)
+				};
+				var htmlinfo = GGenerateWinowInfoHTML(data);
+				var infoWindow = new BMap.InfoWindow(htmlinfo, opts);
+				ZMap.mapObj.openInfoWindow(infoWindow, e.target.point);
+			});
+		}
+
+		function GGenerateWinowInfoHTML(data) {
+			var html = '<ul class="mui-table-view" style="font-size:12px;">';
+			html += '<li class="mui-table-view-cell" style="border-bottom:solid 1px #ff0000;padding: 0px;">围栏编号：' + data.fenceNo;
+			html += '</li>';
+			html += '<li class="mui-table-view-cell" style="border-bottom:solid 1px #c8c7cc;padding: 0px;font-size:11px;">';
+			html += '<div class="mui-col-xs-12"><span style="color:#244FAF">围栏名称：</span>' + data.name + '</div>';
+			if (data.fenceType == 1) {
+				html += '<div class="mui-col-xs-12"><span style="color:#244FAF">围栏类型：</span>圆形</div>';
+				html += '<div class="mui-col-xs-12"><span style="color:#244FAF">圆心点坐标：</span>' + data.lnglat + '</div>';
+				html += '<div class="mui-col-xs-12"><span style="color:#244FAF">半径：</span>' + data.radius + 'm</div>';
+			} else {
+				html += '<div class="mui-col-xs-12"><span style="color:#244FAF">围栏类型：</span>四边形</div>';
+				html += '<div class="mui-col-xs-12"><span style="color:#244FAF">左上角坐标：</span>' + data.rc1Lnglat + '</div>';
+				html += '<div class="mui-col-xs-12"><span style="color:#244FAF">右上角坐标：</span>' + data.rc2Lnglat + '</div>';
+				html += '<div class="mui-col-xs-12"><span style="color:#244FAF">右下角坐标：</span>' + data.rc3Lnglat + '</div>';
+				html += '<div class="mui-col-xs-12"><span style="color:#244FAF">左下角坐标：</span>' + data.rc4Lnglat + '</div>';
+			}
+			var addr = data.addr;
+			if (addr) {
+				html += '<div class="mui-col-xs-12"><span style="color:#244FAF">位置：</span>' + addr + '</div>';
+			}
+
+			html += '</li>';
+			html += '</ul>';
+			return html;
+		}
+		function webViewReady(params){
+				var fence = params;
+				window.postMessage(JSON.stringify({
+					url: "fence/showFence.action", callBackId: 'showFence', params: {
+						fenceNo: fence.fenceNo
+					}
+				}));
+		}
+		(function ($, doc, win) {
+			$.init();
+			// window.postMessage(JSON.stringify({ url: "fence/save.action", callBackId: 'save', params: params }));
+
+			ZMap.defaultMap('allmap', {
+				lng: 116.404,
+				lat: 39.915,
+				level: 15
+			});
+		})(mui, document, window);
+	</script>
+</body>
+
+</html>

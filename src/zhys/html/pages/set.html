@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="../css/mui.css" />
+		<link rel="stylesheet" type="text/css" href="../css/app.css" />
+	</head>
+
+	<body>
+		<header class="mui-bar mui-bar-nav">
+			<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+			<h1 class="mui-title"></h1>
+		</header>
+		<div class="mui-content">
+			<ul class="mui-table-view mui-table-view-chevron">
+				<li class="mui-table-view-cell mui-collapse">
+					<a class="mui-navigate-right" href="#">
+						地图刷新时间间隔
+						<label class="lblRight" id="time-period">30秒</label>
+					</a>
+					<ul class="mui-table-view mui-table-view-chevron" id="sel-time">
+						<li class="mui-table-view-cell">
+							<a class="mui-navigate-right" href="#">15秒</a>
+						</li>
+						<li class="mui-table-view-cell">
+							<a class="mui-navigate-right" href="#">30秒</a>
+						</li>
+						<li class="mui-table-view-cell">
+							<a class="mui-navigate-right" href="#">45秒</a>
+						</li>
+						<li class="mui-table-view-cell">
+							<a class="mui-navigate-right" href="#">60秒</a>
+						</li>
+					</ul>
+				</li>
+				<li id="switch" class="mui-table-view-cell">
+					开启报警信息推送
+					<div class="mui-switch" id="toggle-push">
+						<div class="mui-switch-handle"></div>
+					</div>
+				</li>
+			</ul>
+		</div>
+		<script src="../js/mui.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="../js/app.js" type="text/javascript" charset="utf-8"></script>
+		<script type="text/javascript">
+			(function($, doc, win) {
+				$.init();
+				var contentTag = doc.querySelector('.mui-content');
+				var timePeriodTag = doc.querySelector('#time-period');
+				var timeSelTag = doc.querySelector('#sel-time');
+				var collapseTag = doc.querySelector('.mui-collapse');
+				var pushTag = doc.querySelector('#toggle-push');
+				$.plusReady(function() {
+					var wv = $.currentWebview;
+					doc.querySelector('.mui-title').innerText = wv.title;
+					var time = app.getFreshTime();
+					timePeriodTag.innerText = time.second + '秒';
+					var toggleObj = app.getItems('active');
+					if(toggleObj && toggleObj.active) {
+						pushTag.classList.add('mui-active');
+					}
+					var liTags = timeSelTag.getElementsByTagName('li');
+					$.each(liTags, function(i, tag) {
+						tag.addEventListener('tap', function() {
+							var strsecond = this.firstElementChild.innerText;
+							timePeriodTag.innerText = strsecond;
+							app.saveFreshTime({
+								second: strsecond.substr(0, 2)
+							});
+							collapseTag.classList.remove('mui-active');
+						});
+					});
+					pushTag.addEventListener('tap', function() {
+						var active = this.classList.contains('mui-active');
+						var params = {
+							active: active
+						}
+						app.httpReqWithParamsNoWait(params, 'switchPush.action', function(data) {
+							var retcode = data.retcode;
+							if("0" != retcode) {
+								if(active) {
+									if(this.classList.contains('mui-active')){
+										this.classList.remove('mui-active');
+									}
+								} else {
+									this.classList.add('mui-active');
+								}
+								return;
+							}
+							var items = {
+								active: active
+							};
+							app.saveItems("active", items);
+						});
+					});
+				});
+			})(mui, document, window);
+		</script>
+	</body>
+
+</html>
