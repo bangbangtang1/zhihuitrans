@@ -96,6 +96,10 @@ export function getbind(params, callback) {
 export function getunbind(params, callback) {
     getData('fence/unbind.action', params, callback);
 }
+export function getalllist( callback) {
+    getData('track/posDevDataQuery.action', callback);
+}
+
 /**
  * 
  * @param {String} devNo 设备号

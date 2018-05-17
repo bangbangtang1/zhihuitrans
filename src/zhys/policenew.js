@@ -102,12 +102,13 @@ export class PoliceNewScreen extends React.Component {
         const { navigate } = this.props.navigation;
         return (
             <TouchableOpacity
+                key={item.id}
                 onPress={() => {
                     const { navigate } = this.props.navigation;
                     navigate('DeviceDetail', item)
                 }}
                 style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#d1d1d1', paddingTop: 15, paddingBottom: 5 }}>
-                <Flex key={item.id} column style={{ width: '78%', paddingTop: 5, paddingBottom: 5, paddingRight: 10 }}>
+                <Flex column style={{ width: '78%', paddingTop: 5, paddingBottom: 5, paddingRight: 10 }}>
                     {JSON.stringify(item.vehicleNo) == '' ?
                         <Flex vertical style={{ marginBottom: 8 }}>
                             <Text style={{ fontSize: 14, color: '#000' }} >车牌号：</Text>

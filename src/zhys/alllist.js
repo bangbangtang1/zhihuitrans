@@ -2,13 +2,19 @@ import React from 'react';
 import { StyleSheet, WebView, View, Button, TextInput, PixelRatio, TouchableOpacity, Platform, StatusBar, Dimensions, FlatList, Animated, Easing, ScrollView, Alert } from 'react-native';
 import { StackNavigator, NavigationActions } from 'react-navigation';
 import { Flex, Icon, Image, Placeholder, Text, Page } from '../components';
-import { getWebViewData } from './services';
+import { getWebViewData, getalllist, getfencelist } from './services';
 import { Slider, WingBlank, WhiteSpace, Toast } from 'antd-mobile';
 import { Initializer, MapView } from 'react-native-baidumap-sdk';
 Initializer.init('G0HzIpFi2Lny16YbmCkBj9kww9myuCXx').catch(e => console.error('地图错误', e))
 
 export class AllListScreen extends React.Component {
-    static navigationOptions = { title: 'Marker clustering' }
+    constructor(props) {
+        super(props);
+        this.state = {
+            markers: []
+        }
+    }
+    // static navigationOptions = { title: 'Marker clustering' }
 
     onStatusChange = status => {
         this.status = status
@@ -22,21 +28,59 @@ export class AllListScreen extends React.Component {
         }, 500)
     }
 
-    markers = Array(100).fill(0).map((_, i) => ({
-        coordinate: {
-            latitude: 39.5 + Math.random(),
-            longitude: 116 + Math.random(),
-        },
-        extra: { key: `Marker${i}` },
-    }))
+    getData() {
+        getalllist((data) => {
+            console.log(111);
+            this.state.markers = data.map((item, i) => ({
+                coordinate: {
+                    latitude: item.latitude,
+                    longitude: item.longitude,
+                },
+                extra: { key: `Marker${i}` },
+            }))
+            console.log(item.latitude)
+        })
+    }
+     getData(){
+        getalllist((data)=>{
+            console.log('hahahah')
+        })
+     }
+    componentWillMount() {
+        console.log(111)
+        // this.getData()
+    }
+    componentDidMount(){
+        console.log(222)
+    }
 
-    renderMarker = item => (
+    // componentDidMount(){
+    //     markers = this.state.data1.map((item, i) => ({
+    //         coordinate: {
+    //             latitude: item.latitude,
+    //             longitude: item.longitude,
+    //         },
+    //         extra: { key: `Marker${i}` },
+    //     }))
+    // }
+
+    // markers = Array(100).fill(0).map((_, i) => ({
+    //     coordinate: {
+    //         latitude: 39.5 + Math.random(),
+    //         longitude: 116 + Math.random(),
+    //     },
+    //     extra: { key: `Marker${i}` },
+    // }))
+    onStatusChange = status => this.cluster.update(status)
+    renderMarker = item => {
         <MapView.Marker
             key={item.extra.key}
             title={item.extra.key}
             coordinate={item.coordinate}
         />
-    )
+        this.getData()
+        
+    }
     render() {
         const { navigate, state } = this.props.navigation;
         const props = {
@@ -50,7 +94,7 @@ export class AllListScreen extends React.Component {
                     <MapView.Cluster
                         onPress={this.onPress}
                         ref={ref => this.cluster = ref}
-                        markers={this.markers}
+                        markers={this.state.markers}
                         renderMarker={this.renderMarker}
                     />
                 </MapView>
@@ -67,6 +111,22 @@ export class AllListScreen extends React.Component {
             </Page>
         )
     }
+    // getData(){
+    //     getalllist((data)=>{
+    //         console.log(data);
+    //         // this.setState(data:data)
+    //         markers = data.map((item, i) => ({
+    //             coordinate: {
+    //                 latitude: item.latitude,
+    //                 longitude: item.longitude,
+    //             },
+    //             extra: { key: `Marker${i}` },
+    //         }))
+
+    //     })
+    // }
+
+
     /**
      * native发送数据给webview
      */
